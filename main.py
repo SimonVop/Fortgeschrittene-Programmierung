@@ -86,24 +86,29 @@ class MusicApp:
                     continue
 
                 elif not loading_playlists:
-                    song_objekt = Song(row[0], row[1], row[2], row[3], row[4])
-                    songs.append(song_objekt)
+                    if len(row) >= 5:  # Prüfen, ob die Zeile genügend Daten für einen Song enthält
+                        song_objekt = Song(row[0], row[1], row[2], row[3], row[4])
+                        self.songs.append(song_objekt)
                 else:
                     playlist_name = row[0]   
                     song_title = row[1]      
 
+                    # Playlist suchen oder neu erstellen
                     playlist = next((p for p in self.playlists if p.name == playlist_name), None)
 
                     if not playlist:
                         playlist = Playlist(playlist_name)
                         self.playlists.append(playlist)
 
-                    for playlist in self.playlists:
-                        for s in songs:
-                            if s.name == song_title and s not in playlist.songs:
-                                playlist.add_song(s)
+                    # Song zur Playlist hinzufügen, falls vorhanden
+                    for s in self.songs:
+                        if s.name == song_title and s not in playlist.songs:
+                            playlist.add_song(s)
 
         print('Data successfully loaded')
+
+    
+  
 
     # Speichert die Songs und Playlists in einer CSV-Datei
     def save_data(self):
@@ -131,28 +136,6 @@ class MusicApp:
         songs.append(song)
         print(f"Added song: {song}")
 
-    # Erstellt eine neue Playlist
-    def create_playlist(self):
-        name = input("Enter playlist name: ")
-        playlist = Playlist(name)
-        self.playlists.append(playlist)
-        print(f"Created playlist: {playlist}")
-
-    # Fügt einen Song zu einer bestehenden Playlist hinzu
-    def add_song_to_playlist(self):
-        playlist_name = input('Enter the name of the playlist: ')
-        for playlist in self.playlists:
-            if playlist.name == playlist_name:
-                song_name = input('Enter the song to be added: ')
-                for s in songs:
-                    if s.name == song_name:                         
-                        playlist.add_song(s)
-                        print(f"Added {s.name} to playlist {playlist.name}")
-                    else:
-                        print('Song not found')
-            else:
-                print('Playlist not found')
-
     # Bubble-Sort-Algorithmus zum Sortieren von Songs
     def bubble_sort(self, songs, key):
         n = len(songs)
@@ -169,6 +152,21 @@ class MusicApp:
                         swapped = True
             if not swapped:
                 break
+
+    # Shell-Sort-Algorithmus
+    def shell_sort(self, songs, key):
+        gap = len(self.songs) // 2
+        while gap > 0:
+            for i in range(gap, len(self.songs)):
+                temp = self.songs[i]
+                j = i
+                while j >= gap and getattr(self.songs[j - gap], key) > getattr(temp, key):
+                            self.songs[j] = self.songs[j - gap]
+                            j -= gap
+                self.songs[j] = temp
+                gap //= 2
+
+            print("Songs sorted successfully.")
 
     # Sucht nach Songs
     def search_songs(self):
@@ -212,55 +210,82 @@ class MusicApp:
                 print("No songs found")
 
         if searching_algorithm == '2':
+            
+            print("Sort by:")
+            print("1. Title")
+            print("2. Artist")
+
+            sort_input = input("(T)itle or (A)rtist ")
+            if sort_input == 'T':
+                key = 'name'
+            elif sort_input == 'A':
+                key = 'artist'
+            else:
+                print("Invalid choice. No sorting applied.")
+                return
+            lookup = input(f"Enter the {key} you are looking for: ")
+
             def binary_search(songs, key, lookup):
-                start_time = time.time()
+                start_time = time.time()  # Startzeit für die Suche
                 left = 0
                 right = len(songs) - 1
 
-                if left <= right:
+                # Binäre Suche
+                while left <= right:
                     mid = (left + right) // 2
-                    if songs[mid] == lookup:
+
+                    # Zugriff auf die Eigenschaft des Songs, basierend auf dem angegebenen Schlüssel (key)
+                    song_value = getattr(songs[mid], key).lower()
+
+                    if song_value == lookup.lower():  # Vergleich der Werte
                         end_time = time.time()
-                        return lookup
-                    elif songs[mid] > lookup:
-                        end_time = time.time()
-                        return binary_search(songs, left, mid - 1, lookup)
+                        print(f"Binary Search completed in {end_time - start_time:.6f} seconds")
+                        return mid  # Rückgabe des Indexes des gefundenen Songs
+                    elif song_value > lookup.lower():
+                        right = mid - 1  # Suche im linken Teil weiter
                     else:
-                        return binary_search(songs, mid + 1, right, lookup)
-                else:
-                    return -1    
+                        left = mid + 1  # Suche im rechten Teil weiter
+
+                # Wenn der Song nicht gefunden wurde
+                end_time = time.time()
+                print(f"Binary Search completed in {end_time - start_time:.6f} seconds")
+                return -1  # Rückgabe -1, wenn der Song nicht gefunden wurde
+
+            # Nutzung des binary_search
             index = binary_search(songs, key, lookup)
 
             if index != -1:
-                print(f"Song found: {songs[index]}")
+                print(f"Song found: {songs[index]}")  # Gibt den gefundenen Song aus
             else:
-                print("No songs found")
+                print("No songs found")  # Wenn kein Song gefunden wurde
+
 
     # Sortiert die Songs
     def sort_songs(self):
         print('1. Bubble Sort')
         print('2. Shell Sort')
-        sorting_algorithm = input('(S)ort or (B)ubble ')
+        sorting_algorithm = input('(S)hell or (B)ubble ')
 
-        if sorting_algorithm == '1':
+        if sorting_algorithm == 'B':
             print("Sort by:")
             print("1. Title")
             print("2. Artist")
 
-            sort_input = input("What are you looking for?: ")
-            if sort_input == '1':
+            sort_input = input("(T)itle or (A)rtist ")
+            if sort_input == 'T':
                 key = 'name'
-            elif sort_input == '2':
+            elif sort_input == 'A':
                 key = 'artist'
             else:
                 print("Invalid choice. No sorting applied.")
                 return
+            
             start_time = time.time()
             self.bubble_sort(songs, key)
             end_time = time.time()
             print(f"Bubble Sort completed in {end_time - start_time:.6f} seconds")
 
-        elif sorting_algorithm == '2':
+        elif sorting_algorithm == 'S':
             sort_input = input("(T)itle or (A)rtist ")
             if sort_input == 'T':
                 key = 'name'
@@ -270,45 +295,41 @@ class MusicApp:
                 print("Invalid choice. No sorting applied.")
                 return
 
-        # Shell-Sort-Algorithmus
-        def shell_sort(self, key):
-            gap = len(self.songs) // 2
-            while gap > 0:
-                for i in range(gap, len(self.songs)):
-                    temp = self.songs[i]
-                    j = i
-                    while j >= gap and getattr(self.songs[j - gap], key) > getattr(temp, key):
-                        self.songs[j] = self.songs[j - gap]
-                        j -= gap
-                    self.songs[j] = temp
-                gap //= 2
+            start_time = time.time()
+            self.shell_sort(songs, key)
+            end_time = time.time()
+            print(f"Bubble Sort completed in {end_time - start_time:.6f} seconds")
 
-        print("Songs sorted successfully.")
+
+    def display_songs(self):
+        if self.songs:
+            print("Your music library:")
+            for i, song in enumerate(self.songs, 1):
+                print(f"{i}. {song}")
+        else:
+            print("Your music library is empty.")
 
     def run(self):
         # Main loop for interacting with the Music App
         while True:
             print("\nMenu:")
             print("1. Add a song")
-            print("2. Create a playlist")
-            print("3. Add a song to a playlist")
-            print("4. Search for a song")
-            print("5. Sort songs")
-            print("6. Save and exit")
+            print("2. Search for a song")
+            print("3. Sort songs")
+            print("4. Show all Songs")
+            print("5. Save and exit")
 
             choice = input("Enter your choice: ")
             
             if choice == '1':
                 self.add_song()
             elif choice == '2':
-                self.create_playlist()
-            elif choice == '3':
-                self.add_song_to_playlist()
-            elif choice == '4':
                 self.search_songs()
-            elif choice == '5':
+            elif choice == '3':
                 self.sort_songs()
-            elif choice == '6':
+            elif choice == '4':
+                self.display_songs()
+            elif choice == '5':
                 self.save_data()
                 break
             else:
@@ -319,4 +340,5 @@ class MusicApp:
 if __name__ == "__main__":
     app = MusicApp() # Erstellt eine Instanz der Musik-App
     app.run() # Öffnet das Hauptmenü
+
 
